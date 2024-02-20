@@ -31,9 +31,6 @@ class UserPiggyBankPage(tk.Toplevel):
                                       relief=tk.SUNKEN, anchor=tk.W)
         self.message_label.pack(side=tk.TOP, fill=tk.X)
 
-
-
-
         # Notebook for displaying content
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(expand=True, fill=tk.BOTH)
@@ -298,15 +295,31 @@ class UserPiggyBankPage(tk.Toplevel):
         else:
             self.message_label.config(text="User not found.")
 
+    def read_account_monthly_totals(self):
+        # Read account monthly totals from the file
+        account_totals = {}
+        with open('account_monthly_totals.csv', mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if len(row) >= 5:
+                    account_number = row[1]
+                    month_year = row[2]
+                    total = row[3]
+                    prior_total = row[4]
+                    account_totals[(account_number, month_year)] = (total, prior_total)
+        return account_totals
+
     def load_accounts(self):
         # Clear existing tabs
         for tab in self.notebook.tabs():
             self.notebook.forget(tab)
 
+        # Read account monthly totals from the file
+        account_totals = self.read_account_monthly_totals()
+
         # Add the accounts frame to the notebook
         #self.notebook.add(self.accounts_frame, text="Accounts")
 
-        # Adjust the file name/path
         with open('account_info.csv', mode='r') as file:
             reader = csv.reader(file)
             for row in reader:
@@ -318,10 +331,24 @@ class UserPiggyBankPage(tk.Toplevel):
                     account_frame = tk.Frame(self.notebook)
                     account_frame.pack(expand=True, fill=tk.BOTH)
 
-                    account_label = tk.Label(account_frame,
-                                             text=f"Account Type: {account_type}\nAccount Number: {account_number}")
+                    # Display account information
+                    account_label_text = f"Account Type: {account_type}\nAccount Number: {account_number}"
+                    account_label = tk.Label(account_frame, text=account_label_text)
                     account_label.pack(padx=10, pady=10)
+
+                    # Get and display account monthly totals
+                    totals_info = self.get_account_totals_info(account_number, account_totals)
+                    totals_label = tk.Label(account_frame, text=totals_info)
+                    totals_label.pack(padx=10, pady=10)
 
                     # Add the frame to the notebook as a tab
                     tab_label = f"{account_type} - {account_number}"
                     self.notebook.add(account_frame, text=tab_label)
+
+    def get_account_totals_info(self, account_number, account_totals):
+        # Get account monthly totals information
+        current_month_year = datetime.now().strftime("%Y/%m")
+        totals_info = account_totals.get((account_number, current_month_year), ("0.00", "0.00"))
+        total, prior_total = map(lambda x: "{:.2f}".format(float(x)), totals_info)
+        return f"Total for {current_month_year}: ${total} - Prior Month Total: ${prior_total}"
+
