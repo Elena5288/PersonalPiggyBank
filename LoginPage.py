@@ -51,12 +51,18 @@ class LoginPage():
 
     # Authentication functionality
     def login(self):
-        username=self.username_entry.get()
-        password=self.password_entry.get()
+        username = self.username_entry.get()
+        password = self.password_entry.get()
 
         # Verify credentials from CSV file
         if self.verify_credentials(username, password):
             messagebox.showinfo("Login", f"{username} has logged in")
+
+            # Clear the username and password fields
+            self.username_entry.delete(0, tk.END)
+            self.password_entry.delete(0, tk.END)
+
+            # Open the Piggy Bank window 
             self.open_piggy_bank_window(username)
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")

@@ -237,15 +237,9 @@ class UserPiggyBankPage(tk.Toplevel):
 
             save_button_transfer = ttk.Button(transfer_frame, text="Save", command=self.save_transfer_data)
             save_button_transfer.grid(row=5, column=0, pady=10, padx=10, sticky='w')
-
-            # Print statements for debugging
-            print("Tabs in Dashboard Frame:", vertical_notebook.tabs())
         else:
             # If it exists, simply show the existing dashboard frame
             self.notebook.add(self.dashboard_frame, text="Dashboard")
-
-        # Print statements for debugging
-        print("Tabs in Notebook:", self.notebook.tabs())
 
     def save_cashflow_data(self):
         account_number = self.cashflow_data["Account Number"].get().split(":")[-1]
