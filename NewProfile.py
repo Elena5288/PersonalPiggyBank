@@ -159,7 +159,7 @@ class NewProfile(tk.Toplevel):
         for i in range(len(self.bank_info_widgets) // 3):  # Three widgets per account
             account_type = self.bank_info_widgets[i * 3 + 1].get()
             account_number = self.bank_info_widgets[i * 3 + 2].get()
-            account_info.append([self.user_id, f"Account {i + 1}", account_type, account_number])
+            account_info.append([self.user_id, account_type, account_number])
 
         with open("account_info.csv", "a", newline="") as account_file:
             account_writer = csv.writer(account_file)
