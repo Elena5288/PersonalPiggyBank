@@ -62,7 +62,7 @@ class LoginPage():
             self.username_entry.delete(0, tk.END)
             self.password_entry.delete(0, tk.END)
 
-            # Open the Piggy Bank window 
+            # Open the Piggy Bank window
             self.open_piggy_bank_window(username)
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")

@@ -41,13 +41,6 @@ def calculate_monthly_totals():
     for i in range(1, len(monthly_totals)):
         monthly_totals.loc[i, 'Total'] += monthly_totals.loc[i - 1, 'Total']
 
-    # Print some information for debugging
-    print("Merged Data:")
-    print(merged_data.head())
-
-    print("Monthly Totals:")
-    print(monthly_totals.head())
-
     # Save the result to account_monthly_totals.csv
     monthly_totals.to_csv('account_monthly_totals.csv', index=False)
 
