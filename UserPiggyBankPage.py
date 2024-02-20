@@ -106,130 +106,146 @@ class UserPiggyBankPage(tk.Toplevel):
         for tab in self.notebook.tabs():
             self.notebook.forget(tab)
 
-        # Add the dashboard frame to the notebook
-        self.notebook.add(self.dashboard_frame, text="Dashboard")
+        # Check if the dashboard frame already exists
+        if hasattr(self, 'dashboard_frame'):
+            # If it exists, destroy it and create a new one
+            self.dashboard_frame.destroy()
 
-        # Configure the style for vertical tabs
-        style = ttk.Style()
-        style.configure("Vertical.TNotebook", tabposition='wn')
-        style.map("Vertical.TNotebook.Tab", background=[("active", "darkgrey")])
+            # Create a new dashboard frame
+            self.dashboard_frame = tk.Frame(self.notebook)
+            self.notebook.add(self.dashboard_frame, text="Dashboard")
 
-        # Create a vertical notebook for dashboard tabs
-        vertical_notebook = ttk.Notebook(self.dashboard_frame, style="Vertical.TNotebook")
-        vertical_notebook.pack(fill=tk.Y, side=tk.LEFT, padx=10, pady=10)
+            # Configure the style for vertical tabs
+            style = ttk.Style()
+            style.configure("Vertical.TNotebook", tabposition='wn')
+            style.map("Vertical.TNotebook.Tab", background=[("active", "darkgrey")])
 
-        # Create the Cashflow Form tab
-        cashflow_frame = tk.Frame(vertical_notebook, bg="lightblue")
-        vertical_notebook.add(cashflow_frame, text="Cashflow Form")
+            # Create a vertical notebook for dashboard tabs
+            vertical_notebook = ttk.Notebook(self.dashboard_frame, style="Vertical.TNotebook")
+            vertical_notebook.pack(fill=tk.Y, side=tk.LEFT, padx=10, pady=10)
 
-        # Title for the Cashflow Form
-        cashflow_title_label = ttk.Label(cashflow_frame, text="Cashflow Form", font=("Arial", 12, "bold"))
-        cashflow_title_label.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky='w')
+            # Create the Cashflow Form tab
+            cashflow_frame = tk.Frame(vertical_notebook)
+            vertical_notebook.add(cashflow_frame, text="Cashflow Form")
 
-        # List with Account Type and Account Number
-        account_options=[]
-        with open('account_info.csv', mode='r') as file:
-            reader = csv.reader(file)
-            for row in reader:
-                if len(row) >= 3 and row[0] == str(self.user_id):
-                    account_type = row[1]
-                    account_number = row[2]
-                    account_options.append(f"{account_type}:{account_number}")
+            # Title for the Cashflow Form
+            cashflow_title_label = ttk.Label(cashflow_frame, text="Cashflow Form", font=("Arial", 12, "bold"))
+            cashflow_title_label.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky='w')
 
-        # Combo button for Account Type and Number
-        account_combo_label = ttk.Label(cashflow_frame, text="Account:")
-        account_combo_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
-        account_combo = ttk.Combobox(cashflow_frame, values=account_options,
-                                     textvariable=self.cashflow_data["Account Number"])
-        account_combo.grid(row=1, column=1, pady=10, padx=10, sticky='w')
+            # List with Account Type and Account Number
+            account_options=[]
+            with open('account_info.csv', mode='r') as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if len(row) >= 3 and row[0] == str(self.user_id):
+                        account_type = row[1]
+                        account_number = row[2]
+                        account_options.append(f"{account_type}:{account_number}")
 
-        # Radio buttons for Spending/Withdrawal or Deposit
-        money_inout_label = ttk.Label(cashflow_frame, text="Money In/Out:")
-        money_inout_label.grid(row=2, column=0, pady=10, padx=10, sticky='w')
-        money_inout_frame = ttk.Frame(cashflow_frame)
-        money_inout_frame.grid(row=2, column=1, pady=10, padx=10, sticky='w')
-        money_inout_var = self.cashflow_data["Money In/Out"]
-        money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Spending",
-                                            variable=money_inout_var, value="out")
-        money_inout_radio.grid(row=0, column=0, padx=5)
-        money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Deposit",
-                                            variable=money_inout_var, value="in")
-        money_inout_radio.grid(row=0, column=1, padx=5)
 
-        # Date Picker Calendar for Transaction Date
-        date_label = ttk.Label(cashflow_frame, text="Transaction Date:")
-        date_label.grid(row=3, column=0, pady=10, padx=10, sticky='w')
-        date_picker = DateEntry(cashflow_frame, width=12, background='darkblue', foreground='white',
-                                borderwidth=2, textvariable=self.cashflow_data["Transaction Date"])
-        date_picker.grid(row=3, column=1, pady=10, padx=10, sticky='w')
+            # Combo button for Account Type and Number
+            account_combo_label = ttk.Label(cashflow_frame, text="Account:")
+            account_combo_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
+            account_combo = ttk.Combobox(cashflow_frame, values=account_options,
+                                         textvariable=self.cashflow_data["Account Number"])
+            account_combo.grid(row=1, column=1, pady=10, padx=10, sticky='w')
 
-        # Textbox for Transaction Amount
-        amount_label = ttk.Label(cashflow_frame, text="Transaction Amount:")
-        amount_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
-        amount_entry = ttk.Entry(cashflow_frame, textvariable=self.cashflow_data["Transaction Amount"])
-        amount_entry.grid(row=4, column=1, pady=10, padx=10, sticky='w')
+            # Radio buttons for Spending/Withdrawal or Deposit
+            money_inout_label = ttk.Label(cashflow_frame, text="Money In/Out:")
+            money_inout_label.grid(row=2, column=0, pady=10, padx=10, sticky='w')
+            money_inout_frame = ttk.Frame(cashflow_frame)
+            money_inout_frame.grid(row=2, column=1, pady=10, padx=10, sticky='w')
+            money_inout_var = self.cashflow_data["Money In/Out"]
+            money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Spending",
+                                                variable=money_inout_var, value="out")
+            money_inout_radio.grid(row=0, column=0, padx=5)
+            money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Deposit",
+                                                variable=money_inout_var, value="in")
+            money_inout_radio.grid(row=0, column=1, padx=5)
 
-        # Combo box for Transaction Scope
-        scope_label = ttk.Label(cashflow_frame, text="Transaction Scope:")
-        scope_label.grid(row=5, column=0, pady=10, padx=10, sticky='w')
-        scope_options_mapping = {
-            "out": ["Hydro", "Phone", "Internet", "Transport", "Sport", "Groceries",
-                         "Health", "Fee","Entertainment", "Fashion"],
-            "in": ["Salary", "Dividends", "Interest"]}
+            # Date Picker Calendar for Transaction Date
+            date_label = ttk.Label(cashflow_frame, text="Transaction Date:")
+            date_label.grid(row=3, column=0, pady=10, padx=10, sticky='w')
+            date_picker = DateEntry(cashflow_frame, width=12, background='darkblue', foreground='white',
+                                    borderwidth=2, textvariable=self.cashflow_data["Transaction Date"])
+            date_picker.grid(row=3, column=1, pady=10, padx=10, sticky='w')
 
-        # Function to update Transaction Scope options based on Money In/Out selection
-        def update_scope_options(*args):
-            selected_money_inout = money_inout_var.get()
-            scope_combo["values"] = scope_options_mapping.get(selected_money_inout, [])
+            # Textbox for Transaction Amount
+            amount_label = ttk.Label(cashflow_frame, text="Transaction Amount:")
+            amount_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
+            amount_entry = ttk.Entry(cashflow_frame, textvariable=self.cashflow_data["Transaction Amount"])
+            amount_entry.grid(row=4, column=1, pady=10, padx=10, sticky='w')
 
-        # Bind the function to the Money In/Out variable
-        money_inout_var.trace_add("write", update_scope_options)
+            # Combo box for Transaction Scope
+            scope_label = ttk.Label(cashflow_frame, text="Transaction Scope:")
+            scope_label.grid(row=5, column=0, pady=10, padx=10, sticky='w')
+            scope_options_mapping = {
+                "out": ["Hydro", "Phone", "Internet", "Transport", "Sport", "Groceries",
+                             "Health", "Fee","Entertainment", "Fashion"],
+                "in": ["Salary", "Dividends", "Interest"]}
 
-        # Default options for Transaction Scope
-        default_scope_options = scope_options_mapping.get(money_inout_var.get(), [])
-        scope_combo = ttk.Combobox(cashflow_frame, values=default_scope_options,
-                                   textvariable=self.cashflow_data["Transaction Scope"])
-        scope_combo.grid(row=5, column=1, pady=10, padx=10, sticky='w')
+            # Function to update Transaction Scope options based on Money In/Out selection
+            def update_scope_options(*args):
+                selected_money_inout = money_inout_var.get()
+                scope_combo["values"] = scope_options_mapping.get(selected_money_inout, [])
 
-        # Save button to save the data to cashflow.csv
-        save_button = ttk.Button(cashflow_frame, text="Save", command=self.save_cashflow_data)
-        save_button.grid(row=6, column=0, pady=10, padx=10, sticky='w')
+            # Bind the function to the Money In/Out variable
+            money_inout_var.trace_add("write", update_scope_options)
 
-        # Create the Transfer tab
-        transfer_frame = tk.Frame(vertical_notebook, bg="lightyellow")
-        vertical_notebook.add(transfer_frame, text="Transfer")
+            # Default options for Transaction Scope
+            default_scope_options = scope_options_mapping.get(money_inout_var.get(), [])
+            scope_combo = ttk.Combobox(cashflow_frame, values=default_scope_options,
+                                       textvariable=self.cashflow_data["Transaction Scope"])
+            scope_combo.grid(row=5, column=1, pady=10, padx=10, sticky='w')
 
-        # Title for the Transfer form
-        cashflow_title_label = ttk.Label(transfer_frame, text="Transfer Form", font=("Arial", 12, "bold"))
-        cashflow_title_label.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky='w')
+            # Save button to save the data to cashflow.csv
+            save_button = ttk.Button(cashflow_frame, text="Save", command=self.save_cashflow_data)
+            save_button.grid(row=6, column=0, pady=10, padx=10, sticky='w')
 
-        # Combo button for "From" account
-        from_label = ttk.Label(transfer_frame, text="From:")
-        from_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
-        self.from_account_combo = ttk.Combobox(transfer_frame, values=account_options,
-                                          textvariable=self.cashflow_data["Account Number"])
-        self.from_account_combo.grid(row=1, column=1, pady=10, padx=10, sticky='w')
+            # Create the Transfer tab
+            transfer_frame = tk.Frame(vertical_notebook)
+            vertical_notebook.add(transfer_frame, text="Transfer")
 
-        amount_label_transfer = ttk.Label(transfer_frame, text="Amount:")
-        amount_label_transfer.grid(row=2, column=0, pady=10, padx=10, sticky='w')
-        amount_entry_transfer = ttk.Entry(transfer_frame, textvariable=self.cashflow_data["Transaction Amount"])
-        amount_entry_transfer.grid(row=2, column=1, pady=10, padx=10, sticky='w')
+            # Title for the Transfer form
+            cashflow_title_label = ttk.Label(transfer_frame, text="Transfer Form", font=("Arial", 12, "bold"))
+            cashflow_title_label.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky='w')
 
-        date_label_transfer = ttk.Label(transfer_frame, text="Transaction Date:")
-        date_label_transfer.grid(row=3, column=0, pady=10, padx=10, sticky='w')
-        date_picker_transfer = DateEntry(transfer_frame, width=12, background='darkblue', foreground='white',
-                                         borderwidth=2, textvariable=self.cashflow_data["Transaction Date"])
-        date_picker_transfer.grid(row=3, column=1, pady=10, padx=10, sticky='w')
+            # Combo button for "From" account
+            from_label = ttk.Label(transfer_frame, text="From:")
+            from_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
+            self.from_account_combo = ttk.Combobox(transfer_frame, values=account_options,
+                                              textvariable=self.cashflow_data["Account Number"])
+            self.from_account_combo.grid(row=1, column=1, pady=10, padx=10, sticky='w')
 
-        # Combo button for "To" account
-        to_label = ttk.Label(transfer_frame, text="To:")
-        to_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
-        self.to_account_combo = ttk.Combobox(transfer_frame, values=account_options,
-                                        textvariable=self.cashflow_data["Transaction Scope"])
-        self.to_account_combo.grid(row=4, column=1, pady=10, padx=10, sticky='w')
+            amount_label_transfer = ttk.Label(transfer_frame, text="Amount:")
+            amount_label_transfer.grid(row=2, column=0, pady=10, padx=10, sticky='w')
+            amount_entry_transfer = ttk.Entry(transfer_frame, textvariable=self.cashflow_data["Transaction Amount"])
+            amount_entry_transfer.grid(row=2, column=1, pady=10, padx=10, sticky='w')
 
-        save_button_transfer = ttk.Button(transfer_frame, text="Save", command=self.save_transfer_data)
-        save_button_transfer.grid(row=5, column=0, pady=10, padx=10, sticky='w')
+            date_label_transfer = ttk.Label(transfer_frame, text="Transaction Date:")
+            date_label_transfer.grid(row=3, column=0, pady=10, padx=10, sticky='w')
+            date_picker_transfer = DateEntry(transfer_frame, width=12, background='darkblue', foreground='white',
+                                             borderwidth=2, textvariable=self.cashflow_data["Transaction Date"])
+            date_picker_transfer.grid(row=3, column=1, pady=10, padx=10, sticky='w')
+
+            # Combo button for "To" account
+            to_label = ttk.Label(transfer_frame, text="To:")
+            to_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
+            self.to_account_combo = ttk.Combobox(transfer_frame, values=account_options,
+                                            textvariable=self.cashflow_data["Transaction Scope"])
+            self.to_account_combo.grid(row=4, column=1, pady=10, padx=10, sticky='w')
+
+            save_button_transfer = ttk.Button(transfer_frame, text="Save", command=self.save_transfer_data)
+            save_button_transfer.grid(row=5, column=0, pady=10, padx=10, sticky='w')
+
+            # Print statements for debugging
+            print("Tabs in Dashboard Frame:", vertical_notebook.tabs())
+        else:
+            # If it exists, simply show the existing dashboard frame
+            self.notebook.add(self.dashboard_frame, text="Dashboard")
+
+        # Print statements for debugging
+        print("Tabs in Notebook:", self.notebook.tabs())
 
     def save_cashflow_data(self):
         account_number = self.cashflow_data["Account Number"].get().split(":")[-1]
