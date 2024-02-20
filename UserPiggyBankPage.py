@@ -35,6 +35,9 @@ class UserPiggyBankPage(tk.Toplevel):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(expand=True, fill=tk.BOTH)
 
+        # Call show_accounts to display the "Accounts" tab by default
+        self.show_accounts()
+
         # Create frames for each functionality
         self.accounts_frame = tk.Frame(self.notebook, bg="lightblue")
         self.dashboard_frame = tk.Frame(self.notebook, bg="lightgreen")
