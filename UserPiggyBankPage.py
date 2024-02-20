@@ -2,6 +2,8 @@ import tkinter as tk
 import csv
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
+from datetime import datetime
+from Calculations import calculate_monthly_totals
 
 class UserPiggyBankPage(tk.Toplevel):
     def __init__(self, username):
@@ -15,7 +17,7 @@ class UserPiggyBankPage(tk.Toplevel):
         menubar = tk.Menu(self)
         self.config(menu=menubar)
 
-        # File menu (you can add more menus as needed)
+        # File menu
         file_menu = tk.Menu(menubar, tearoff=False)
         menubar.add_cascade(label="Menu", menu=file_menu)
         file_menu.add_command(label="Profile", command=self.show_profile)
@@ -28,6 +30,9 @@ class UserPiggyBankPage(tk.Toplevel):
         self.message_label = tk.Label(self, text="Please make a selection from the menu!", bd=1,
                                       relief=tk.SUNKEN, anchor=tk.W)
         self.message_label.pack(side=tk.TOP, fill=tk.X)
+
+
+
 
         # Notebook for displaying content
         self.notebook = ttk.Notebook(self)
@@ -47,8 +52,7 @@ class UserPiggyBankPage(tk.Toplevel):
             "Money In/Out": tk.StringVar(),
             "Transaction Date": tk.StringVar(),
             "Transaction Amount": tk.StringVar(),
-            "Transaction Scope": tk.StringVar()
-        }
+            "Transaction Scope": tk.StringVar()}
 
     def get_user_id_from_csv(self, username):
         with open('user_info.csv', mode='r') as file:
@@ -93,8 +97,7 @@ class UserPiggyBankPage(tk.Toplevel):
                             "Last Name": row[2],
                             "Date of Birth": row[3],
                             "Employment Type": row[4],
-                            "Number of Accounts": row[7]
-                        }
+                            "Number of Accounts": row[7]}
                         break
         return user_details
 
@@ -147,10 +150,10 @@ class UserPiggyBankPage(tk.Toplevel):
         money_inout_frame.grid(row=2, column=1, pady=10, padx=10, sticky='w')
         money_inout_var = self.cashflow_data["Money In/Out"]
         money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Spending",
-                                            variable=money_inout_var, value="spending")
+                                            variable=money_inout_var, value="out")
         money_inout_radio.grid(row=0, column=0, padx=5)
         money_inout_radio = ttk.Radiobutton(money_inout_frame, text="Deposit",
-                                            variable=money_inout_var, value="deposit")
+                                            variable=money_inout_var, value="in")
         money_inout_radio.grid(row=0, column=1, padx=5)
 
         # Date Picker Calendar for Transaction Date
@@ -170,9 +173,9 @@ class UserPiggyBankPage(tk.Toplevel):
         scope_label = ttk.Label(cashflow_frame, text="Transaction Scope:")
         scope_label.grid(row=5, column=0, pady=10, padx=10, sticky='w')
         scope_options_mapping = {
-            "spending": ["Hydro", "Phone", "Internet", "Transport", "Sport", "Groceries",
+            "out": ["Hydro", "Phone", "Internet", "Transport", "Sport", "Groceries",
                          "Health", "Fee","Entertainment", "Fashion"],
-            "deposit": ["Salary", "Dividends", "Interest"]}
+            "in": ["Salary", "Dividends", "Interest"]}
 
         # Function to update Transaction Scope options based on Money In/Out selection
         def update_scope_options(*args):
@@ -228,8 +231,6 @@ class UserPiggyBankPage(tk.Toplevel):
         save_button_transfer = ttk.Button(transfer_frame, text="Save", command=self.save_transfer_data)
         save_button_transfer.grid(row=5, column=0, pady=10, padx=10, sticky='w')
 
-
-
     def save_cashflow_data(self):
         account_number = self.cashflow_data["Account Number"].get().split(":")[-1]
         money_inout = self.cashflow_data["Money In/Out"].get()
@@ -237,24 +238,30 @@ class UserPiggyBankPage(tk.Toplevel):
         transaction_amount = self.cashflow_data["Transaction Amount"].get()
         transaction_scope = self.cashflow_data["Transaction Scope"].get()
 
+        # Convert the transaction date to the desired format
+        formatted_date = datetime.strptime(transaction_date, "%m/%d/%y").strftime("%m/%d/%Y")
+
         with open('cashflow.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([
                 self.user_id,
                 account_number,
                 money_inout,
-                transaction_date,
+                formatted_date,
                 transaction_amount,
-                transaction_scope
-            ])
+                transaction_scope])
+
+        # Call the calculations function after saving cashflow data
+        calculate_monthly_totals()
 
         messagebox.showinfo("Success", "Cashflow data saved successfully!")
 
     def save_transfer_data(self):
         from_account_number = self.from_account_combo.get().split(":")[-1]
         to_account_number = self.to_account_combo.get().split(":")[-1]
-        print(from_account_number)
-        print(to_account_number)
+
+        # Convert the transaction date to the desired format
+        formatted_date = datetime.strptime(self.cashflow_data["Transaction Date"].get(), "%m/%d/%y").strftime("%m/%d/%Y")
 
         # Open 'cashflow.csv' in append mode and write the data
         with open('cashflow.csv', mode='a', newline='') as file:
@@ -262,19 +269,21 @@ class UserPiggyBankPage(tk.Toplevel):
             writer.writerow([
                 self.user_id,
                 from_account_number,
-                "withdrawal",
-                self.cashflow_data["Transaction Date"].get(),
+                "out",
+                formatted_date,
                 self.cashflow_data["Transaction Amount"].get(),
-                to_account_number
-            ])
+                to_account_number])
+
             writer.writerow([
                 self.user_id,
                 to_account_number,
-                "deposit",
-                self.cashflow_data["Transaction Date"].get(),
+                "in",
+                formatted_date,
                 self.cashflow_data["Transaction Amount"].get(),
-                from_account_number
-            ])
+                from_account_number])
+
+        # Call the calculations function after saving transfer data
+        calculate_monthly_totals()
 
         messagebox.showinfo("Success", "Transfer data saved successfully!")
 
@@ -295,7 +304,7 @@ class UserPiggyBankPage(tk.Toplevel):
             self.notebook.forget(tab)
 
         # Add the accounts frame to the notebook
-        self.notebook.add(self.accounts_frame, text="Accounts")
+        #self.notebook.add(self.accounts_frame, text="Accounts")
 
         # Adjust the file name/path
         with open('account_info.csv', mode='r') as file:
@@ -314,5 +323,5 @@ class UserPiggyBankPage(tk.Toplevel):
                     account_label.pack(padx=10, pady=10)
 
                     # Add the frame to the notebook as a tab
-                    tab_label = f"{account_type}: {account_number}"
+                    tab_label = f"{account_type} - {account_number}"
                     self.notebook.add(account_frame, text=tab_label)

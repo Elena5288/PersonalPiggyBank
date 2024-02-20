@@ -1,7 +1,5 @@
 import tkinter as tk
 from tkinter import ttk
-import csv
-import numpy as np
 from LoginPage import LoginPage
 from NewProfile import NewProfile
 
