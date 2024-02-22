@@ -35,12 +35,9 @@ class UserPiggyBankPage(tk.Toplevel):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(expand=True, fill=tk.BOTH)
 
-        # Call show_accounts to display the "Accounts" tab by default
-        self.show_accounts()
-
         # Create frames for each functionality
-        self.accounts_frame = tk.Frame(self.notebook, bg="lightblue")
-        self.dashboard_frame = tk.Frame(self.notebook, bg="lightgreen")
+        self.accounts_frame = tk.Frame(self.notebook)
+        self.dashboard_frame = tk.Frame(self.notebook)
         self.profile_frame = tk.Frame(self.notebook)
 
         # Labels to display user details in the Profile tab
@@ -54,6 +51,9 @@ class UserPiggyBankPage(tk.Toplevel):
             "Transaction Amount": tk.StringVar(),
             "Transaction Scope": tk.StringVar()}
 
+        # Call show_dashboard to display the "Dashboard" tab by default
+        self.show_dashboard()
+
     def get_user_id_from_csv(self, username):
         with open('user_info.csv', mode='r') as file:
             reader = csv.reader(file)
@@ -63,27 +63,63 @@ class UserPiggyBankPage(tk.Toplevel):
         return None
 
     def show_profile(self):
-        # Clear existing tabs
-        for tab in self.notebook.tabs():
-            self.notebook.forget(tab)
+        # Check if the profile frame already exists
+        if hasattr(self, 'profile_frame'):
+            # If it exists, destroy it and create a new one
+            self.profile_frame.destroy()
 
-        # Add the profile frame to the notebook
-        self.notebook.add(self.profile_frame, text="Profile")
+            # Create a new profile frame
+            self.profile_frame = tk.Frame(self.notebook)
+            self.notebook.add(self.profile_frame, text="Profile")
 
-        # Read user details from user_info.csv
-        user_details = self.get_user_details_from_csv()
+            # Clear existing tabs
+            for tab in self.notebook.tabs():
+                self.notebook.forget(tab)
 
-        # Display user details in the Profile tab
-        if user_details:
-            for key, value in user_details.items():
-                label_text = f"{key}: {value}"
-                label = tk.Label(self.profile_frame, text=label_text)
-                label.grid(pady=5, sticky="w")
-                self.profile_labels[key] = label
+            # Add the profile frame to the notebook
+            self.notebook.add(self.profile_frame, text="Profile")
+
+            # Read user details from user_info.csv
+            user_details = self.get_user_details_from_csv()
+
+            # Display user details in the Profile tab
+            if user_details:
+                for key, value in user_details.items():
+                    label_text = f"{key}: {value}"
+                    label = tk.Label(self.profile_frame, text=label_text)
+                    label.grid(pady=5, sticky="w")
+                    self.profile_labels[key] = label
+
+                # Display credit limit information
+                self.display_credit_limit_info()
+            else:
+                tk.Label(self.profile_frame, text="User details not found.").pack()
+
+    def display_credit_limit_info(self):
+        # Get credit limit information from account_info.csv
+        credit_limit_info = self.get_credit_limit_info()
+
+        if credit_limit_info:
+            for account_number, credit_limit in credit_limit_info.items():
+                if credit_limit != "":
+                    credit_limit_label_text = f"Credit limit for account {account_number}: ${credit_limit}"
+                    credit_limit_label = tk.Label(self.profile_frame, text=credit_limit_label_text)
+                    credit_limit_label.grid(pady=5, sticky="w")
+
         else:
-            tk.Label(self.profile_frame, text="User details not found.").pack()
+            tk.Label(self.profile_frame, text="Credit limit information not found.").pack()
 
-        print("Showing Profile")
+    def get_credit_limit_info(self):
+        # Get credit limit information from account_info.csv
+        credit_limit_info = {}
+        with open('account_info.csv', mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if len(row) >= 4 and row[0] == str(self.user_id):
+                    account_number = row[2]
+                    credit_limit = row[3]
+                    credit_limit_info[account_number] = credit_limit
+        return credit_limit_info
 
     def get_user_details_from_csv(self):
         user_details = {}
@@ -141,7 +177,6 @@ class UserPiggyBankPage(tk.Toplevel):
                         account_type = row[1]
                         account_number = row[2]
                         account_options.append(f"{account_type}:{account_number}")
-
 
             # Combo button for Account Type and Number
             account_combo_label = ttk.Label(cashflow_frame, text="Account:")
@@ -241,6 +276,65 @@ class UserPiggyBankPage(tk.Toplevel):
             # If it exists, simply show the existing dashboard frame
             self.notebook.add(self.dashboard_frame, text="Dashboard")
 
+        # Create the Credit Overview tab
+        credit_overview_frame = tk.Frame(vertical_notebook)
+        vertical_notebook.add(credit_overview_frame, text="Credit Overview")
+
+        # Get user's credit account number from account_info.csv
+        user_credit_account_number = self.get_credit_account_number()
+
+        if user_credit_account_number:
+            # Get credit overview information
+            credit_limit_info = self.get_credit_limit_info()
+            credit_balance = self.calculate_credit_balance(user_credit_account_number)
+            credit_limit = float(credit_limit_info.get(user_credit_account_number, 0.0))
+            available_credit = credit_limit - credit_balance
+            balance_percentage = (credit_balance / credit_limit) * 100
+
+            # Display credit overview information
+            credit_limit_label = ttk.Label(credit_overview_frame, text=f"Credit Limit: ${credit_limit:.2f}")
+            credit_limit_label.grid(row=0, column=0, pady=10, padx=10, sticky='w')
+
+            balance_label = ttk.Label(credit_overview_frame, text=f"Balance: ${credit_balance:.2f}")
+            balance_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
+
+            available_credit_label = ttk.Label(credit_overview_frame, text=f"Available: ${available_credit:.2f}")
+            available_credit_label.grid(row=2, column=0, pady=10, padx=10, sticky='w')
+
+            # Progress bar
+            progress_bar_style = ttk.Style()
+            balance_percentage = (credit_balance / credit_limit) * 100
+
+            # Cap the balance_percentage at 100
+            balance_percentage = min(balance_percentage, 100)
+
+            # Create the progress bar with the selected style
+            progress_bar = ttk.Progressbar(credit_overview_frame, orient=tk.HORIZONTAL, length=300,
+                                           mode='determinate', style="Horizontal.TProgressbar")
+
+            # Apply the style to the progress bar
+            progress_bar['value'] = balance_percentage
+            progress_bar.grid(row=3, column=0, pady=10, padx=10, sticky='w')
+
+            progress_label = ttk.Label(credit_overview_frame, text=f"You have used {balance_percentage:.2f}%")
+            progress_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
+
+            # Call the calculations function after displaying Credit Overview data
+            calculate_monthly_totals()
+        else:
+            # Display a message if the user doesn't have a credit account
+            no_credit_account_label = ttk.Label(credit_overview_frame, text="No credit account found.")
+            no_credit_account_label.grid(row=0, column=0, pady=10, padx=10, sticky='w')
+
+    def get_credit_account_number(self):
+        # Get the user's credit account number from account_info.csv
+        with open('account_info.csv', mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if len(row) >= 3 and row[0] == str(self.user_id) and row[1].lower() == "credit":
+                    return row[2]
+        return None
+
     def save_cashflow_data(self):
         account_number = self.cashflow_data["Account Number"].get().split(":")[-1]
         money_inout = self.cashflow_data["Money In/Out"].get()
@@ -330,9 +424,6 @@ class UserPiggyBankPage(tk.Toplevel):
         # Read account monthly totals from the file
         account_totals = self.read_account_monthly_totals()
 
-        # Add the accounts frame to the notebook
-        #self.notebook.add(self.accounts_frame, text="Accounts")
-
         with open('account_info.csv', mode='r') as file:
             reader = csv.reader(file)
             for row in reader:
@@ -354,9 +445,73 @@ class UserPiggyBankPage(tk.Toplevel):
                     totals_label = tk.Label(account_frame, text=totals_info)
                     totals_label.pack(padx=10, pady=10)
 
+                    # Check if it's a credit account and display additional information
+                    if account_type.lower() == "credit":
+                        credit_info = self.get_credit_account_info(account_number)
+                        credit_label = tk.Label(account_frame, text=credit_info)
+                        credit_label.pack(padx=10, pady=5)
+
+                    # Create a table for transactions
+                    tree = ttk.Treeview(account_frame, columns=("Money In/Out", "Date", "Amount", "Scope"),
+                                        show="headings")
+                    tree.heading("Money In/Out", text="Money In/Out", anchor=tk.CENTER)
+                    tree.heading("Date", text="Date", anchor=tk.CENTER)
+                    tree.heading("Amount", text="Amount", anchor=tk.CENTER)
+                    tree.heading("Scope", text="Scope", anchor=tk.CENTER)
+                    tree.column("Money In/Out", width=100)
+                    tree.column("Date", width=100)
+                    tree.column("Amount", width=100)
+                    tree.column("Scope", width=150)
+                    tree.pack(fill=tk.BOTH, padx=10, pady=5, expand=True)
+
+                    # Insert transactions into the Treeview
+                    current_month_year = datetime.now().strftime("%m/%Y")
+                    transactions = self.get_transactions_for_month(account_number, current_month_year)
+                    for transaction in transactions:
+                        # Split the transaction string into a tuple
+                        transaction_data = tuple(transaction.split())
+                        tree.insert("", "end", values=transaction_data)
+
                     # Add the frame to the notebook as a tab
                     tab_label = f"{account_type} - {account_number}"
                     self.notebook.add(account_frame, text=tab_label)
+
+    def get_credit_account_info(self, account_number):
+        # Calculate credit-related information for credit accounts
+        credit_limit_str = self.get_credit_limit_info().get(account_number, "0.0")
+
+        # Convert credit limit to float
+        try:
+            credit_limit = float(credit_limit_str)
+        except ValueError:
+            credit_limit = 0.0
+
+        credit_balance = self.calculate_credit_balance(account_number)
+        available_credit = credit_limit - credit_balance
+
+        return f"Credit Limit: ${credit_limit:.2f}  Balance: ${credit_balance:.2f}  Available: ${available_credit:.2f}"
+
+    def calculate_credit_balance(self, account_number):
+        # Calculate credit balance for a credit account
+        transactions = self.get_transactions_for_credit_account(account_number)
+        total_credit = sum(float(transaction[4]) for transaction in transactions)
+        return total_credit
+
+    def get_transactions_for_credit_account(self, account_number):
+        # Retrieve transactions for a credit account
+        transactions = []
+        last_in_date = None
+        with open('cashflow.csv', mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if len(row) >= 6 and row[1] == account_number:
+                    transaction_date = datetime.strptime(row[3], "%m/%d/%Y").date()
+                    if row[2] == "in":
+                        last_in_date = transaction_date
+                    transactions.append(row)
+
+        # Filter transactions after the last 'in' transaction date
+        return [transaction for transaction in transactions if datetime.strptime(transaction[3], "%m/%d/%Y").date() > last_in_date]
 
     def get_account_totals_info(self, account_number, account_totals):
         # Get account monthly totals information
@@ -364,4 +519,30 @@ class UserPiggyBankPage(tk.Toplevel):
         totals_info = account_totals.get((account_number, current_month_year), ("0.00", "0.00"))
         total, prior_total = map(lambda x: "{:.2f}".format(float(x)), totals_info)
         return f"Total for {current_month_year}: ${total} - Prior Month Total: ${prior_total}"
+
+    def get_transactions_for_month(self, account_number, month_year):
+        transactions = []
+        with open('cashflow.csv', mode='r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                if len(row) >= 6 and row[1] == account_number:
+                    transaction_date = datetime.strptime(row[3], "%m/%d/%Y").strftime("%m/%Y")
+                    # The scope conditions
+                    scope_code = row[5][:2]
+                    if scope_code == "11":
+                        scope_display = "Debit"
+                    elif scope_code == "21":
+                        scope_display = "Credit"
+                    elif scope_code == "31":
+                        scope_display = "Savings"
+                    elif scope_code == "41":
+                        scope_display = "Investment"
+                    elif scope_code == "51":
+                        scope_display = "Loan"
+                    else:
+                        scope_display = row[5].title()
+                    if transaction_date == month_year:
+                        transaction_info = f"{row[2].capitalize()}    {row[3]}    ${row[4]}    {scope_display}"
+                        transactions.append(transaction_info)
+        return transactions
 

@@ -121,8 +121,26 @@ class NewProfile(tk.Toplevel):
             account_number_entry = LabeledEntry(self.bank_info_frame, placeholder="Account Number")
             account_number_entry.grid(row=i + 1, column=2, pady=5, sticky="w")
 
+            # Credit limit entry (only for "Credit" account type)
+            credit_limit_label = ttk.Label(self.bank_info_frame, text="Credit Account Limit:")
+            credit_limit_entry = LabeledEntry(self.bank_info_frame, placeholder="Credit Limit")
+
             # Keep track of created widgets to clear them later
-            self.bank_info_widgets.extend([account_label, account_type_dropdown, account_number_entry])
+            self.bank_info_widgets.extend(
+                [account_label, account_type_dropdown, account_number_entry, credit_limit_label, credit_limit_entry])
+
+            def on_account_type_change(event):
+                if account_type_var.get() == "Credit":
+                    credit_limit_label.grid(row=i + 1, column=3, pady=5, sticky="w")
+                    credit_limit_entry.grid(row=i + 1, column=4, pady=5, sticky="w")
+                else:
+                    credit_limit_label.grid_forget()
+                    credit_limit_entry.grid_forget()
+
+            account_type_dropdown.bind("<<ComboboxSelected>>", on_account_type_change)
+
+            # Bind the function once to check the initial value
+            on_account_type_change(None)
 
     def save_profile(self):
         self.first_name = self.first_name_entry.get()
@@ -134,17 +152,25 @@ class NewProfile(tk.Toplevel):
 
         # Check if any of the fields are empty
         empty_fields = []
-        for entry_widget in [self.first_name_entry, self.last_name_entry, self.username_entry, self.password_entry]:
-            field_value = entry_widget.get().strip()
-            if not field_value:
-                empty_fields.append(entry_widget)
-                entry_widget.config(bg="red")
-            else:
-                entry_widget.config(bg="#fff")
+
+        if self.first_name == self.first_name_entry.placeholder:
+            empty_fields.append(self.first_name_entry)
+        if self.last_name == self.last_name_entry.placeholder:
+            empty_fields.append(self.last_name_entry)
+        if self.username == self.username_entry.placeholder:
+            empty_fields.append(self.username_entry)
+        if self.password == self.password_entry.placeholder:
+            empty_fields.append(self.password_entry)
+
+        for entry_widget in empty_fields:
+            entry_widget.configure(background="red")
 
         if empty_fields:
             messagebox.showwarning("Error", "Please fill in all fields.")
             return
+        else:
+            for entry_widget in [self.first_name_entry, self.last_name_entry, self.username_entry, self.password_entry]:
+                entry_widget.config(bg="#fff")
 
         # Save user information
         num_accounts = int(self.num_accounts_entry.get())
@@ -156,24 +182,27 @@ class NewProfile(tk.Toplevel):
 
         # Save account information
         account_info = []
-        for i in range(len(self.bank_info_widgets) // 3):  # Three widgets per account
-            account_type = self.bank_info_widgets[i * 3 + 1].get()
-            account_number = self.bank_info_widgets[i * 3 + 2].get()
-            account_info.append([self.user_id, account_type, account_number])
+        for i in range(len(self.bank_info_widgets) // 5):  # Five widgets per account
+            account_type = self.bank_info_widgets[i * 5 + 1].get()
+            account_number = self.bank_info_widgets[i * 5 + 2].get()
+
+            # Check if the account type is "Credit" to include Credit Limit in account_info
+            if account_type == "Credit":
+                if len(self.bank_info_widgets) > i * 5 + 4:  # Ensure the index is within bounds
+                    credit_limit_entry = self.bank_info_widgets[i * 5 + 4]
+                    credit_limit = credit_limit_entry.get() if isinstance(credit_limit_entry, LabeledEntry) else ""
+                else:
+                    credit_limit = ""
+                account_info.append([self.user_id, account_type, account_number, credit_limit])
+            else:
+                account_info.append([self.user_id, account_type, account_number])
 
         with open("account_info.csv", "a", newline="") as account_file:
             account_writer = csv.writer(account_file)
             account_writer.writerows(account_info)
 
-        # Clear user info fields
-        self.first_name_entry.delete(0, tk.END)
-        self.last_name_entry.delete(0, tk.END)
-        self.day_spinbox.set(1)
-        self.month_spinbox.set("January")
-        self.year_spinbox.set(1900)
-        self.employment_combobox.set(self.employment_options[0])
-        self.username_entry.delete(0, tk.END)
-        self.password_entry.delete(0, tk.END)
+        # Inform the user that the profile has been saved
+        messagebox.showinfo("Success", "Profile has been saved.")
 
         # Clear bank info fields
         for widget in self.bank_info_widgets:
@@ -181,3 +210,4 @@ class NewProfile(tk.Toplevel):
         self.bank_info_widgets = []
 
         self.destroy()
+

@@ -1,11 +1,11 @@
-ID,Account Type,Account Number
-85937,Debit,11785
-85937,Credit,21896
-85937,Savings,31974
-85937,Investment,41879
-85937,Loan,51521
-27805,Debit,11472
-27805,Credit,21579
-27805,Loan,51197
-30401,Debit,11731
-30401,Savings,31138
+ID,Account Type,Account Number,Credit Limit
+85937,Debit,11785,
+85937,Credit,21896,10000
+85937,Savings,31974,
+85937,Investment,41879,
+85937,Loan,51521,
+27805,Debit,11472,
+27805,Credit,21579,5000
+27805,Loan,51197,
+30401,Debit,11731,
+30401,Savings,31138,
