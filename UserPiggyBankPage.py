@@ -16,7 +16,6 @@ class UserPiggyBankPage(tk.Toplevel):
         self.username = username
         self.user_id = self.get_user_id_from_csv(username)  # Get user_id from CSV
 
-
         # Call the calculations function as soon as the new window appears
         calculate_monthly_totals()
 
@@ -215,7 +214,20 @@ class UserPiggyBankPage(tk.Toplevel):
             # Textbox for Transaction Amount
             amount_label = ttk.Label(cashflow_frame, text="Transaction Amount:")
             amount_label.grid(row=4, column=0, pady=10, padx=10, sticky='w')
-            amount_entry = ttk.Entry(cashflow_frame, textvariable=self.cashflow_data["Transaction Amount"])
+
+            # Validation function to check if the input is a valid number
+            def validate_amount(value):
+                try:
+                    float(value)
+                    return True
+                except ValueError:
+                    self.bell()  # Ring the bell to indicate an error
+                    return False
+
+            # Apply the validation function to the amount_entry
+            amount_validation = (cashflow_frame.register(validate_amount), '%P')
+            amount_entry = ttk.Entry(cashflow_frame, textvariable=self.cashflow_data["Transaction Amount"],
+                                     validate='key', validatecommand=amount_validation)
             amount_entry.grid(row=4, column=1, pady=10, padx=10, sticky='w')
 
             # Combo box for Transaction Scope
@@ -265,12 +277,26 @@ class UserPiggyBankPage(tk.Toplevel):
             from_label = ttk.Label(transfer_frame, text="From:")
             from_label.grid(row=1, column=0, pady=10, padx=10, sticky='w')
             self.from_account_combo = ttk.Combobox(transfer_frame, values=account_options,
-                                              textvariable=self.cashflow_data["Account Number"])
+                                                   textvariable=self.cashflow_data["Account Number"])
             self.from_account_combo.grid(row=1, column=1, pady=10, padx=10, sticky='w')
 
+            # Label and Entry for Amount in Transfer form
             amount_label_transfer = ttk.Label(transfer_frame, text="Amount:")
             amount_label_transfer.grid(row=2, column=0, pady=10, padx=10, sticky='w')
-            amount_entry_transfer = ttk.Entry(transfer_frame, textvariable=self.cashflow_data["Transaction Amount"])
+
+            # Validation function for Amount in Transfer form
+            def validate_amount_transfer(value):
+                try:
+                    float(value)
+                    return True
+                except ValueError:
+                    self.bell()  # Ring the bell to indicate an error
+                    return False
+
+            # Apply the validation function to amount_entry_transfer
+            amount_transfer_validation = (transfer_frame.register(validate_amount_transfer), '%P')
+            amount_entry_transfer = ttk.Entry(transfer_frame, textvariable=self.cashflow_data["Transaction Amount"],
+                                              validate='key', validatecommand=amount_transfer_validation)
             amount_entry_transfer.grid(row=2, column=1, pady=10, padx=10, sticky='w')
 
             date_label_transfer = ttk.Label(transfer_frame, text="Transaction Date:")
