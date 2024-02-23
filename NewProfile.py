@@ -64,6 +64,9 @@ class NewProfile(tk.Toplevel):
         self.year_spinbox.grid(row=1, column=3, pady=10, sticky="w")
 
         # Type of employment
+        self.employment_label = ttk.Label(self.signup_frame, text="Employment type")
+        self.employment_label.grid(row=1, column=0, pady=10, sticky="w")
+
         self.employment_options = ["Employee", "Self-employed", "Homemaker", "Student"]
         self.employment_var=tk.StringVar(self)
         self.employment_var.set(self.employment_options[0])
@@ -110,9 +113,8 @@ class NewProfile(tk.Toplevel):
             account_label.grid(row=i + 1, column=0, pady=5, sticky="w")
 
             # Type of account dropdown
-            account_type_options = ["Debit", "Credit", "Savings", "Investment", "Loan"]
+            account_type_options = ["Account Type", "Debit", "Credit", "Savings", "Investment", "Loan"]
             account_type_var = tk.StringVar(self.bank_info_frame)
-            account_type_var.set(account_type_options[0])
             account_type_dropdown = ttk.Combobox(self.bank_info_frame, textvariable=account_type_var,
                                                  values=account_type_options, state="readonly")
             account_type_dropdown.grid(row=i + 1, column=1, pady=5, sticky="w")

@@ -1,9 +1,12 @@
 import tkinter as tk
 import csv
+import pandas as pd
+import matplotlib.pyplot as plt
 from tkinter import ttk, messagebox
 from tkcalendar import DateEntry
 from datetime import datetime
 from Calculations import calculate_monthly_totals
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class UserPiggyBankPage(tk.Toplevel):
     def __init__(self, username):
@@ -12,6 +15,10 @@ class UserPiggyBankPage(tk.Toplevel):
         self.geometry("600x400")
         self.username = username
         self.user_id = self.get_user_id_from_csv(username)  # Get user_id from CSV
+
+
+        # Call the calculations function as soon as the new window appears
+        calculate_monthly_totals()
 
         # Menu Bar
         menubar = tk.Menu(self)
@@ -219,6 +226,12 @@ class UserPiggyBankPage(tk.Toplevel):
                              "Health", "Fee","Entertainment", "Fashion"],
                 "in": ["Salary", "Dividends", "Interest"]}
 
+            # Default options for Transaction Scope
+            default_scope_options = scope_options_mapping.get(money_inout_var.get(), [])
+            scope_combo = ttk.Combobox(cashflow_frame, values=default_scope_options,
+                                       textvariable=self.cashflow_data["Transaction Scope"])
+            scope_combo.grid(row=5, column=1, pady=10, padx=10, sticky='w')
+
             # Function to update Transaction Scope options based on Money In/Out selection
             def update_scope_options(*args):
                 selected_money_inout = money_inout_var.get()
@@ -226,6 +239,9 @@ class UserPiggyBankPage(tk.Toplevel):
 
             # Bind the function to the Money In/Out variable
             money_inout_var.trace_add("write", update_scope_options)
+
+            # Initially update the values based on the default Money In/Out
+            update_scope_options()
 
             # Default options for Transaction Scope
             default_scope_options = scope_options_mapping.get(money_inout_var.get(), [])
@@ -288,8 +304,8 @@ class UserPiggyBankPage(tk.Toplevel):
             credit_limit_info = self.get_credit_limit_info()
             credit_balance = self.calculate_credit_balance(user_credit_account_number)
             credit_limit = float(credit_limit_info.get(user_credit_account_number, 0.0))
-            available_credit = credit_limit - credit_balance
-            balance_percentage = (credit_balance / credit_limit) * 100
+            available_credit = credit_limit - abs(credit_balance)
+            balance_percentage = (abs(credit_balance) / credit_limit) * 100
 
             # Display credit overview information
             credit_limit_label = ttk.Label(credit_overview_frame, text=f"Credit Limit: ${credit_limit:.2f}")
@@ -303,14 +319,14 @@ class UserPiggyBankPage(tk.Toplevel):
 
             # Progress bar
             progress_bar_style = ttk.Style()
-            balance_percentage = (credit_balance / credit_limit) * 100
+            balance_percentage = (abs(credit_balance) / credit_limit) * 100
 
             # Cap the balance_percentage at 100
             balance_percentage = min(balance_percentage, 100)
 
             # Create the progress bar with the selected style
             progress_bar = ttk.Progressbar(credit_overview_frame, orient=tk.HORIZONTAL, length=300,
-                                           mode='determinate', style="Horizontal.TProgressbar")
+                                           mode='determinate', style="Custom.Horizontal.TProgressbar")
 
             # Apply the style to the progress bar
             progress_bar['value'] = balance_percentage
@@ -321,10 +337,25 @@ class UserPiggyBankPage(tk.Toplevel):
 
             # Call the calculations function after displaying Credit Overview data
             calculate_monthly_totals()
+
         else:
             # Display a message if the user doesn't have a credit account
             no_credit_account_label = ttk.Label(credit_overview_frame, text="No credit account found.")
             no_credit_account_label.grid(row=0, column=0, pady=10, padx=10, sticky='w')
+
+        # Create the Your Spending tab
+        self.your_spending_frame = tk.Frame(vertical_notebook)
+        vertical_notebook.add(self.your_spending_frame, text="Your Spending")
+
+        # Create and display vertical progress bars for the last 5 months
+        self.create_spending_progress_bars()
+
+        # Create the Wallet Graph tab
+        wallet_graph_frame = tk.Frame(vertical_notebook)
+        vertical_notebook.add(wallet_graph_frame, text="Wallet Graph")
+
+        # Calculate and display pie chart and legend
+        self.create_wallet_graph(wallet_graph_frame)
 
     def get_credit_account_number(self):
         # Get the user's credit account number from account_info.csv
@@ -354,6 +385,12 @@ class UserPiggyBankPage(tk.Toplevel):
                 formatted_date,
                 transaction_amount,
                 transaction_scope])
+
+        # Reset the fields to empty values
+        self.cashflow_data["Account Number"].set("")
+        self.cashflow_data["Money In/Out"].set("")
+        self.cashflow_data["Transaction Amount"].set("")
+        self.cashflow_data["Transaction Scope"].set("")
 
         # Call the calculations function after saving cashflow data
         calculate_monthly_totals()
@@ -385,6 +422,11 @@ class UserPiggyBankPage(tk.Toplevel):
                 formatted_date,
                 self.cashflow_data["Transaction Amount"].get(),
                 from_account_number])
+
+        # Reset the fields to empty values
+        self.from_account_combo.set("")
+        self.to_account_combo.set("")
+        self.cashflow_data["Transaction Amount"].set("")
 
         # Call the calculations function after saving transfer data
         calculate_monthly_totals()
@@ -442,14 +484,17 @@ class UserPiggyBankPage(tk.Toplevel):
 
                     # Get and display account monthly totals
                     totals_info = self.get_account_totals_info(account_number, account_totals)
-                    totals_label = tk.Label(account_frame, text=totals_info)
-                    totals_label.pack(padx=10, pady=10)
 
                     # Check if it's a credit account and display additional information
                     if account_type.lower() == "credit":
                         credit_info = self.get_credit_account_info(account_number)
                         credit_label = tk.Label(account_frame, text=credit_info)
-                        credit_label.pack(padx=10, pady=5)
+                        credit_label.pack(padx=10, pady=10)
+
+                        # If it's a credit account, do not display the monthly totals
+                    else:
+                        totals_label = tk.Label(account_frame, text=totals_info)
+                        totals_label.pack(padx=10, pady=10)
 
                     # Create a table for transactions
                     tree = ttk.Treeview(account_frame, columns=("Money In/Out", "Date", "Amount", "Scope"),
@@ -487,15 +532,26 @@ class UserPiggyBankPage(tk.Toplevel):
             credit_limit = 0.0
 
         credit_balance = self.calculate_credit_balance(account_number)
-        available_credit = credit_limit - credit_balance
+        available_credit = credit_limit - abs(credit_balance)
 
         return f"Credit Limit: ${credit_limit:.2f}  Balance: ${credit_balance:.2f}  Available: ${available_credit:.2f}"
 
-    def calculate_credit_balance(self, account_number):
-        # Calculate credit balance for a credit account
-        transactions = self.get_transactions_for_credit_account(account_number)
-        total_credit = sum(float(transaction[4]) for transaction in transactions)
-        return total_credit
+    def calculate_credit_balance(self, account_number_prefix="21"):
+        # Read the monthly totals from account_monthly_totals.csv
+        monthly_totals = pd.read_csv('account_monthly_totals.csv')
+
+        # Get the current year and month
+        current_year_month = datetime.now().strftime('%Y/%m')
+
+        # Filter data for accounts starting with the specified prefix and current year/month
+        account_data = monthly_totals[
+            (monthly_totals['Account Number'].astype(str).str.startswith(account_number_prefix)) &
+            (monthly_totals['Month/Year'] == current_year_month)]
+
+        # Calculate credit balance based on the 'Total' column
+        credit_balance = account_data['Total'].sum()
+
+        return credit_balance
 
     def get_transactions_for_credit_account(self, account_number):
         # Retrieve transactions for a credit account
@@ -545,4 +601,129 @@ class UserPiggyBankPage(tk.Toplevel):
                         transaction_info = f"{row[2].capitalize()}    {row[3]}    ${row[4]}    {scope_display}"
                         transactions.append(transaction_info)
         return transactions
+
+    def create_spending_progress_bars(self):
+        # Read spending data from avg_spending.csv
+        avg_spending = pd.read_csv('avg_spending.csv')
+
+        # Define the mapping of transaction scopes to categories
+        scope_category_mapping = {
+            "salary": "income",
+            "dividends": "income",
+            "interest": "income",
+            "41": "investments",}
+
+        # Filter relevant scopes for spending and income
+        spending_scopes = ["transport", "sport", "rent", "phone", "internet", "hydro", "health",
+                           "groceries", "fee", "fashion", "entertainment", "investments"]
+        income_scopes = ["salary", "interest", "dividends"]
+
+        # Create a dictionary to store monthly spending and income totals
+        monthly_totals = {'spending': [], 'income': []}
+
+        # Iterate over the last 5 months
+        for i in range(5):
+            # Calculate the month/year for the current iteration
+            current_month_year = (datetime.now() - pd.DateOffset(months=i)).strftime("%Y/%m")
+
+            # Filter data for the current month
+            current_month_data = avg_spending[avg_spending['Month/Year'] == current_month_year]
+
+            # Sum spending and income based on the defined scopes
+            spending_total = current_month_data[current_month_data['Transaction Scope'].isin(spending_scopes)][
+                'Monthly Total'].sum()
+            income_total = current_month_data[current_month_data['Transaction Scope'].isin(income_scopes)][
+                'Monthly Total'].sum()
+
+            # Fetch investments total from the "41" prefixed transaction scopes
+            investments_total = current_month_data[current_month_data['Transaction Scope'].str.startswith("41")][
+                'Monthly Total'].sum()
+
+            # Append the totals to the dictionary
+            monthly_totals['spending'].append(spending_total)
+            monthly_totals['income'].append(income_total)
+
+            # Add investments total to the spending total
+            monthly_totals['spending'][-1] += investments_total
+
+        # Get the maximum value for the progress bars
+        max_value = max(monthly_totals['income'])
+
+        # Create and display vertical progress bars for spending
+        for i, (spending_total, month_year) in enumerate(zip(monthly_totals['spending'], reversed(range(5)))):
+            # Calculate the month/year for the current iteration
+            current_month_year = (datetime.now() - pd.DateOffset(months=month_year)).strftime("%B %Y")
+
+            # Create a label for the month/year
+            month_label = tk.Label(self.your_spending_frame, text=current_month_year)
+            month_label.grid(row=2, column=i, padx=5, pady=5, sticky='n')
+
+            # Create a progress bar for spending
+            progress_bar = ttk.Progressbar(self.your_spending_frame, orient=tk.VERTICAL, length=150, mode='determinate')
+            progress_bar.grid(row=0, column=i, padx=5, pady=5, sticky='n')
+
+            # Set the value of the progress bar
+            progress_bar['value'] = (spending_total / max_value) * 100
+
+            # Display the spending total as a label below the progress bar
+            label = tk.Label(self.your_spending_frame, text=f"{(spending_total / max_value) * 100:.2f}%")
+            label.grid(row=1, column=i, padx=5, pady=5, sticky='n')
+
+    def create_wallet_graph(self, frame):
+        # Read spending data from avg_spending.csv
+        avg_spending = pd.read_csv('avg_spending.csv')
+
+        # Define relevant scopes for income, savings, investments, and spendings
+        income_scopes = ["salary", "interest", "dividends"]
+        savings_prefix = "31"
+        investment_prefix = "41"
+        spending_scopes = ["transport", "sport", "rent", "phone", "internet", "hydro", "health",
+                           "groceries", "fee", "fashion", "entertainment"]
+
+        # Filter data for the current system year and month
+        current_month_year = datetime.now().strftime("%Y/%m")
+        current_month_data = avg_spending[avg_spending['Month/Year'] == current_month_year]
+
+        # Sum spending and income based on the defined scopes
+        income_total = current_month_data[current_month_data['Transaction Scope'].isin(income_scopes)][
+            'Monthly Total'].sum()
+        savings_total = current_month_data[current_month_data['Transaction Scope'].str.startswith(savings_prefix)][
+            'Monthly Total'].sum()
+        investment_total = current_month_data[current_month_data['Transaction Scope'].str.startswith(investment_prefix)][
+            'Monthly Total'].sum()
+        spending_total = current_month_data[current_month_data['Transaction Scope'].isin(spending_scopes)][
+            'Monthly Total'].sum()
+
+        # Create a pie chart
+        fig, ax = plt.subplots()
+        colors = ['#003f5c', '#7a5195', '#ffa600', '#ef5675']
+
+        labels = ["Income", "Savings", "Investments", "Spendings"]
+        values = [income_total, savings_total, investment_total, spending_total]
+
+        ax.pie(values, labels=labels, colors=colors, autopct=lambda p: '{:.1f}%'.format(p), startangle=180)
+
+        # Draw the circle
+        centre_circle = plt.Circle((0, 0), 0.50, fc='white')
+        fig = plt.gcf()
+        fig.gca().add_artist(centre_circle)
+
+        # Equal aspect ratio ensures that pie is drawn as a circle
+        ax.axis('equal')
+        plt.title(f'Wallet Graph - {current_month_year}')
+
+        # Display the pie chart in the tkinter window
+        canvas = FigureCanvasTkAgg(fig, master=frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack()
+
+        # Display the legend
+        legend_frame = tk.Frame(frame)
+        legend_frame.pack()
+        legend_labels = [tk.Label(legend_frame, text=f"{label}: ${value:.2f}", fg=color) for label, value, color in
+                         zip(labels, values, colors)]
+
+        for label in legend_labels:
+            label.pack(side=tk.LEFT)
+
 
