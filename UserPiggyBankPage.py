@@ -315,7 +315,7 @@ class UserPiggyBankPage(tk.Toplevel):
             save_button_transfer = ttk.Button(transfer_frame, text="Save", command=self.save_transfer_data)
             save_button_transfer.grid(row=5, column=0, pady=10, padx=10, sticky='w')
         else:
-            # If it exists, simply show the existing dashboard frame
+            # If it exists, show the existing dashboard frame
             self.notebook.add(self.dashboard_frame, text="Dashboard")
 
         # Create the Credit Overview tab
@@ -430,7 +430,6 @@ class UserPiggyBankPage(tk.Toplevel):
         # Convert the transaction date to the desired format
         formatted_date = datetime.strptime(self.cashflow_data["Transaction Date"].get(), "%m/%d/%y").strftime("%m/%d/%Y")
 
-        # Open 'cashflow.csv' in append mode and write the data
         with open('cashflow.csv', mode='a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([

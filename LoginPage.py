@@ -24,7 +24,7 @@ class LabeledEntry(tk.Entry):
             self.config(fg="grey")
 
 class LoginPage():
-    def __init__(self,root): #initial layout and components
+    def __init__(self,root):
         self.root=root #stores a reference to the main window as an instance attribute for easy access within the class
         self.root.title("Personal Piggy Bank")
 
