@@ -121,6 +121,21 @@ class NewProfile(tk.Toplevel):
 
             # Account number entry
             account_number_entry = LabeledEntry(self.bank_info_frame, placeholder="Account Number")
+
+            # Validation function to check if the input is a valid number
+            def validate_account_number(value):
+                try:
+                    int(value)
+                    return True
+                except ValueError:
+                    self.bell()  # Ring the bell to indicate an error
+                    return False
+
+            # Apply the validation function to account_number_entry
+            account_number_validation = (self.bank_info_frame.register(validate_account_number), '%P')
+            account_number_entry.config(validate='key', validatecommand=account_number_validation)
+
+            # Grid the account_number_entry
             account_number_entry.grid(row=i + 1, column=2, pady=5, sticky="w")
 
             # Credit limit entry (only for "Credit" account type)
